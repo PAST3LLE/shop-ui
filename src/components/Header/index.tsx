@@ -61,9 +61,28 @@ export default function Header() {
   // only applicable for certain view sizes..
   const [open, setOpen] = useState(false)
 
+  const [showBanner, setShowBanner] = useState(!!process.env.NEXT_PUBLIC_SALE)
+
   return (
-    <HeaderFrame as="header" color={color} logoSet={headerLogo} open={false} css={process.env.NEXT_PUBLIC_SALE && `margin-top: 40px;`}>
-      {process.env.NEXT_PUBLIC_SALE && <SaleBanner css={`position: fixed; top: 0; left: 0; right: 0;`} backgroundColor="#383d38ff" />}
+    <HeaderFrame
+      as="header"
+      color={color}
+      logoSet={headerLogo}
+      open={false}
+      css={process.env.NEXT_PUBLIC_SALE && showBanner ? `margin-top: 40px;` : ''}
+    >
+      {process.env.NEXT_PUBLIC_SALE && showBanner && (
+        <SaleBanner
+          onClick={() => setShowBanner(false)}
+          css={`
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+          `}
+          backgroundColor="#383d38ff"
+        />
+      )}
       <HeaderDrawerButton onClick={() => setOpen((state) => !state)}>
         <ProductSubHeader padding="0" margin="0">
           TAP TO {open ? 'HIDE' : 'VIEW CART + MENU'}
