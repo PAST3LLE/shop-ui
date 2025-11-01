@@ -60,6 +60,7 @@ export default memo<DescriptionScreenProps>(function DescriptionAndChildren({
                       } brightness(0.75) drop-shadow(0px -5px 5px ${mode === ThemeModes.DARK ? color : bgColor});
                       transform: rotate(180deg);
                       margin: 0 0 -12.5% 0;
+                      z-index: 0;
                     `}
             logoBgAttributes={['bottom/contain no-repeat', 'bottom/contain no-repeat']}
             parentNode={containerNode}
@@ -76,6 +77,8 @@ export default memo<DescriptionScreenProps>(function DescriptionAndChildren({
               backgroundColor={TRANSPARENT_HEX}
               color={mode === ThemeModes.DARK ? content.text : setBestTextColour(color || BLACK, 2, true)}
               css={`
+                positions: relative;
+                z-index: 1;
                 h1:first-of-type {
                   text-decoration: none;
                   font-size: 4rem;

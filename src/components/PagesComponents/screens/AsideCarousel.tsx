@@ -88,7 +88,6 @@ export default memo<AsideCarouselProps>(function AsideCarouselScreen({
       {!!breadcrumbs?.breadcrumbs && (
         <ScrollingProductLabel height={ITEM_LABEL_HEIGHT} logo={headerLogo} padding={'0.25rem'} flexDirection="column">
           <Breadcrumbs lastCrumb={breadcrumbs?.lastCrumb} breadcrumbs={breadcrumbs.breadcrumbs} color={bgColor} />
-          <SaleBanner />
         </ScrollingProductLabel>
       )}
       {/* Product carousel */}
