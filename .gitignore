@@ -51,3 +51,6 @@ cypress/fixtures/example.json
 # next
 .next
 next-env.d.ts
+
+# ts
+*.tsbuildinfo
