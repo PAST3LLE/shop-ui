@@ -5,7 +5,7 @@ import { Row } from '@past3lle/components'
 import { Text } from '../Text'
 
 interface ToastProps {
-  header: string
+  header?: string
   body: string
   isMobile: boolean
 }
@@ -15,9 +15,9 @@ export function PastelleToast({ header, body, isMobile }: ToastProps) {
     <ToastContainer isMobile={isMobile}>
       <Row>
         <img src={PNG_LogoCircle_2x as unknown as string} />
-        <Text.Main>{header}</Text.Main>
+        {header !== undefined && <Text.Main>{header}</Text.Main>}
       </Row>
-      <Text.ProductText className="toast-body-text" backgroundColor="#6495edb3">{body}</Text.ProductText>
+      <Text.ProductText className="toast-body-text" backgroundColor="#564461ff">{body}</Text.ProductText>
     </ToastContainer>
   )
 }

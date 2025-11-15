@@ -15,7 +15,7 @@ export const CustomStaticGlobalCSSProvider = createGlobalStyle`
         overflow: hidden;
         
       .pastelle-toast {
-        background: royalblue;
+        background: black;
         font-size: 2.2rem;
         color: ghostwhite;
         svg {

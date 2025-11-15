@@ -229,6 +229,7 @@ export const HeaderDrawerButton = styled.div`
 export const HeaderFrame = styled(Header)<{
   open: boolean
   color?: string | undefined | null
+  css?: string
   logoSet?: ShopImageSrcSet
 }>`
   top: 0;
@@ -269,6 +270,8 @@ export const HeaderFrame = styled(Header)<{
   `}
 
   transition: left 0.2s ease-in-out, height 0.2s ease-in-out;
+
+  ${({ css }) => css}
 `
 
 export const HeaderLinks = styled(Row)<{ color?: string | null }>`

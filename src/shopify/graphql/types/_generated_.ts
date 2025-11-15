@@ -124,9 +124,9 @@ export type Article = HasMetafields & Node & OnlineStorePublishable & Trackable 
   id: Scalars['ID']['output'];
   /** The image associated with the article. */
   image?: Maybe<Image>;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The URL used for viewing the resource on the shop's Online Store. Returns `null` if the resource is currently not published to the Online Store sales channel. */
   onlineStoreUrl?: Maybe<Scalars['URL']['output']>;
@@ -357,9 +357,9 @@ export type Blog = HasMetafields & Node & OnlineStorePublishable & {
   handle: Scalars['String']['output'];
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The URL used for viewing the resource on the shop's Online Store. Returns `null` if the resource is currently not published to the Online Store sales channel. */
   onlineStoreUrl?: Maybe<Scalars['URL']['output']>;
@@ -493,7 +493,7 @@ export type BrandColors = {
 export type BuyerInput = {
   /** The identifier of the company location. */
   companyLocationId?: InputMaybe<Scalars['ID']['input']>;
-  /** The storefront customer access token retrieved from the [Customer Accounts API](https://shopify.dev/docs/api/customer/reference/mutations/storefrontCustomerAccessTokenCreate). */
+  /** The customer access token retrieved from the [Customer Accounts API](https://shopify.dev/docs/api/customer#step-obtain-access-token). */
   customerAccessToken: Scalars['String']['input'];
 };
 
@@ -536,6 +536,8 @@ export type Cart = HasMetafields & Node & {
   cost: CartCost;
   /** The date and time when the cart was created. */
   createdAt: Scalars['DateTime']['output'];
+  /** The delivery properties of the cart. */
+  delivery: CartDelivery;
   /**
    * The delivery groups available for the cart, based on the buyer identity default
    * delivery address preference or the default address of the logged-in customer.
@@ -555,9 +557,9 @@ export type Cart = HasMetafields & Node & {
   id: Scalars['ID']['output'];
   /** A list of lines containing information about the items the customer intends to purchase. */
   lines: BaseCartLineConnection;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** A note that's associated with the cart. For example, the note can be a personalized message to the buyer. */
   note?: Maybe<Scalars['String']['output']>;
@@ -637,6 +639,17 @@ export type CartMetafieldsArgs = {
   identifiers: Array<HasMetafieldsIdentifier>;
 };
 
+/** A delivery address of the buyer that is interacting with the cart. */
+export type CartAddress = CartDeliveryAddress;
+
+/** The input fields to provide exactly one of a variety of delivery address types. */
+export type CartAddressInput = {
+  /** Copies details from the customer address to an address on this cart. */
+  copyFromCustomerAddressId?: InputMaybe<Scalars['ID']['input']>;
+  /** A delivery address stored on this cart. */
+  deliveryAddress?: InputMaybe<CartDeliveryAddressInput>;
+};
+
 /** Return type for `cartAttributesUpdate` mutation. */
 export type CartAttributesUpdatePayload = {
   __typename?: 'CartAttributesUpdatePayload';
@@ -644,11 +657,15 @@ export type CartAttributesUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** The discounts automatically applied to the cart line based on prerequisites that have been met. */
 export type CartAutomaticDiscountAllocation = CartDiscountAllocation & {
   __typename?: 'CartAutomaticDiscountAllocation';
+  /** The discount that have been applied on the cart line. */
+  discountApplication: CartDiscountApplication;
   /** The discounted amount that has been applied to the cart line. */
   discountedAmount: MoneyV2;
   /** The type of line that the discount is applicable towards. */
@@ -664,6 +681,8 @@ export type CartBillingAddressUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** Represents information about the buyer that is interacting with the cart. */
@@ -678,6 +697,13 @@ export type CartBuyerIdentity = {
    * The rank of the preferences is determined by the order of the addresses in the array. Preferences
    * can be used to populate relevant fields in the checkout flow.
    *
+   * As of the `2025-01` release, `buyerIdentity.deliveryAddressPreferences` is deprecated.
+   * Delivery addresses are now part of the `CartDelivery` object and managed with three new mutations:
+   * - `cartDeliveryAddressAdd`
+   * - `cartDeliveryAddressUpdate`
+   * - `cartDeliveryAddressDelete`
+   *
+   * @deprecated Use `cart.delivery` instead.
    */
   deliveryAddressPreferences: Array<DeliveryAddress>;
   /** The email address of the buyer that's interacting with the cart. */
@@ -708,14 +734,6 @@ export type CartBuyerIdentityInput = {
   countryCode?: InputMaybe<CountryCode>;
   /** The access token used to identify the customer associated with the cart. */
   customerAccessToken?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * An ordered set of delivery addresses tied to the buyer that is interacting with the cart.
-   * The rank of the preferences is determined by the order of the addresses in the array. Preferences
-   * can be used to populate relevant fields in the checkout flow.
-   *
-   * The input must not contain more than `250` values.
-   */
-  deliveryAddressPreferences?: InputMaybe<Array<DeliveryAddressInput>>;
   /** The email address of the buyer that is interacting with the cart. */
   email?: InputMaybe<Scalars['String']['input']>;
   /** The phone number of the buyer that is interacting with the cart. */
@@ -735,6 +753,8 @@ export type CartBuyerIdentityUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /**
@@ -755,6 +775,8 @@ export type CartCodeDiscountAllocation = CartDiscountAllocation & {
   __typename?: 'CartCodeDiscountAllocation';
   /** The code used to apply the discount. */
   code: Scalars['String']['output'];
+  /** The discount that have been applied on the cart line. */
+  discountApplication: CartDiscountApplication;
   /** The discounted amount that has been applied to the cart line. */
   discountedAmount: MoneyV2;
   /** The type of line that the discount is applicable towards. */
@@ -825,13 +847,37 @@ export type CartCost = {
   totalAmount: MoneyV2;
   /** Whether the total amount is estimated. */
   totalAmountEstimated: Scalars['Boolean']['output'];
-  /** The duty amount for the customer to pay at checkout. */
+  /**
+   * The duty amount for the customer to pay at checkout.
+   * @deprecated Tax and duty amounts are no longer available and will be removed in a future version.
+   * Please see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)
+   * for more information.
+   *
+   */
   totalDutyAmount?: Maybe<MoneyV2>;
-  /** Whether the total duty amount is estimated. */
+  /**
+   * Whether the total duty amount is estimated.
+   * @deprecated Tax and duty amounts are no longer available and will be removed in a future version.
+   * Please see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)
+   * for more information.
+   *
+   */
   totalDutyAmountEstimated: Scalars['Boolean']['output'];
-  /** The tax amount for the customer to pay at checkout. */
+  /**
+   * The tax amount for the customer to pay at checkout.
+   * @deprecated Tax and duty amounts are no longer available and will be removed in a future version.
+   * Please see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)
+   * for more information.
+   *
+   */
   totalTaxAmount?: Maybe<MoneyV2>;
-  /** Whether the total tax amount is estimated. */
+  /**
+   * Whether the total tax amount is estimated.
+   * @deprecated Tax and duty amounts are no longer available and will be removed in a future version.
+   * Please see [the changelog](https://shopify.dev/changelog/tax-and-duties-are-deprecated-in-storefront-cart-api)
+   * for more information.
+   *
+   */
   totalTaxAmountEstimated: Scalars['Boolean']['output'];
 };
 
@@ -842,17 +888,174 @@ export type CartCreatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** The discounts automatically applied to the cart line based on prerequisites that have been met. */
 export type CartCustomDiscountAllocation = CartDiscountAllocation & {
   __typename?: 'CartCustomDiscountAllocation';
+  /** The discount that have been applied on the cart line. */
+  discountApplication: CartDiscountApplication;
   /** The discounted amount that has been applied to the cart line. */
   discountedAmount: MoneyV2;
   /** The type of line that the discount is applicable towards. */
   targetType: DiscountApplicationTargetType;
   /** The title of the allocated discount. */
   title: Scalars['String']['output'];
+};
+
+/**
+ * The delivery properties of the cart.
+ *
+ */
+export type CartDelivery = {
+  __typename?: 'CartDelivery';
+  /** Selectable addresses to present to the buyer on the cart. */
+  addresses: Array<CartSelectableAddress>;
+};
+
+
+/**
+ * The delivery properties of the cart.
+ *
+ */
+export type CartDeliveryAddressesArgs = {
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Represents a mailing address for customers and shipping. */
+export type CartDeliveryAddress = {
+  __typename?: 'CartDeliveryAddress';
+  /** The first line of the address. Typically the street address or PO Box number. */
+  address1?: Maybe<Scalars['String']['output']>;
+  /**
+   * The second line of the address. Typically the number of the apartment, suite, or unit.
+   *
+   */
+  address2?: Maybe<Scalars['String']['output']>;
+  /** The name of the city, district, village, or town. */
+  city?: Maybe<Scalars['String']['output']>;
+  /** The name of the customer's company or organization. */
+  company?: Maybe<Scalars['String']['output']>;
+  /**
+   * The two-letter code for the country of the address.
+   *
+   * For example, US.
+   *
+   */
+  countryCode?: Maybe<Scalars['String']['output']>;
+  /** The first name of the customer. */
+  firstName?: Maybe<Scalars['String']['output']>;
+  /** A formatted version of the address, customized by the provided arguments. */
+  formatted: Array<Scalars['String']['output']>;
+  /** A comma-separated list of the values for city, province, and country. */
+  formattedArea?: Maybe<Scalars['String']['output']>;
+  /** The last name of the customer. */
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** The latitude coordinate of the customer address. */
+  latitude?: Maybe<Scalars['Float']['output']>;
+  /** The longitude coordinate of the customer address. */
+  longitude?: Maybe<Scalars['Float']['output']>;
+  /** The full name of the customer, based on firstName and lastName. */
+  name?: Maybe<Scalars['String']['output']>;
+  /**
+   * A unique phone number for the customer.
+   *
+   * Formatted using E.164 standard. For example, _+16135551111_.
+   *
+   */
+  phone?: Maybe<Scalars['String']['output']>;
+  /**
+   * The alphanumeric code for the region.
+   *
+   * For example, ON.
+   *
+   */
+  provinceCode?: Maybe<Scalars['String']['output']>;
+  /** The zip or postal code of the address. */
+  zip?: Maybe<Scalars['String']['output']>;
+};
+
+
+/** Represents a mailing address for customers and shipping. */
+export type CartDeliveryAddressFormattedArgs = {
+  withCompany?: InputMaybe<Scalars['Boolean']['input']>;
+  withName?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** The input fields to create or update a cart address. */
+export type CartDeliveryAddressInput = {
+  /**
+   * The first line of the address. Typically the street address or PO Box number.
+   *
+   */
+  address1?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The second line of the address. Typically the number of the apartment, suite, or unit.
+   *
+   */
+  address2?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The name of the city, district, village, or town.
+   *
+   */
+  city?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The name of the customer's company or organization.
+   *
+   */
+  company?: InputMaybe<Scalars['String']['input']>;
+  /** The name of the country. */
+  countryCode?: InputMaybe<CountryCode>;
+  /** The first name of the customer. */
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  /** The last name of the customer. */
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * A unique phone number for the customer.
+   *
+   * Formatted using E.164 standard. For example, _+16135551111_.
+   *
+   */
+  phone?: InputMaybe<Scalars['String']['input']>;
+  /** The region of the address, such as the province, state, or district. */
+  provinceCode?: InputMaybe<Scalars['String']['input']>;
+  /** The zip or postal code of the address. */
+  zip?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Return type for `cartDeliveryAddressesAdd` mutation. */
+export type CartDeliveryAddressesAddPayload = {
+  __typename?: 'CartDeliveryAddressesAddPayload';
+  /** The updated cart. */
+  cart?: Maybe<Cart>;
+  /** The list of errors that occurred from executing the mutation. */
+  userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
+};
+
+/** Return type for `cartDeliveryAddressesRemove` mutation. */
+export type CartDeliveryAddressesRemovePayload = {
+  __typename?: 'CartDeliveryAddressesRemovePayload';
+  /** The updated cart. */
+  cart?: Maybe<Cart>;
+  /** The list of errors that occurred from executing the mutation. */
+  userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
+};
+
+/** Return type for `cartDeliveryAddressesUpdate` mutation. */
+export type CartDeliveryAddressesUpdatePayload = {
+  __typename?: 'CartDeliveryAddressesUpdatePayload';
+  /** The updated cart. */
+  cart?: Maybe<Cart>;
+  /** The list of errors that occurred from executing the mutation. */
+  userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** Preferred location used to find the closest pick up point based on coordinates. */
@@ -954,6 +1157,16 @@ export enum CartDeliveryGroupType {
   Subscription = 'SUBSCRIPTION'
 }
 
+/** The input fields for the cart's delivery properties. */
+export type CartDeliveryInput = {
+  /**
+   * Selectable addresses to present to the buyer on the cart.
+   *
+   * The input must not contain more than `250` values.
+   */
+  addresses?: InputMaybe<Array<CartSelectableAddressInput>>;
+};
+
 /** Information about a delivery option. */
 export type CartDeliveryOption = {
   __typename?: 'CartDeliveryOption';
@@ -1014,6 +1227,8 @@ export type CartDeliveryPreferenceInput = {
  *
  */
 export type CartDirectPaymentMethodInput = {
+  /** Indicates if the customer has accepted the subscription terms. Defaults to false. */
+  acceptedSubscriptionTerms?: InputMaybe<Scalars['Boolean']['input']>;
   /** The customer's billing address. */
   billingAddress: MailingAddressInput;
   /** The source of the credit card payment. */
@@ -1024,10 +1239,28 @@ export type CartDirectPaymentMethodInput = {
 
 /** The discounts that have been applied to the cart line. */
 export type CartDiscountAllocation = {
+  /** The discount that have been applied on the cart line. */
+  discountApplication: CartDiscountApplication;
   /** The discounted amount that has been applied to the cart line. */
   discountedAmount: MoneyV2;
   /** The type of line that the discount is applicable towards. */
   targetType: DiscountApplicationTargetType;
+};
+
+/**
+ * The discount application capture the intentions of a discount source at
+ *         the time of application.
+ */
+export type CartDiscountApplication = {
+  __typename?: 'CartDiscountApplication';
+  /** The method by which the discount's value is allocated to its entitled items. */
+  allocationMethod: DiscountApplicationAllocationMethod;
+  /** Which lines of targetType that the discount is allocated over. */
+  targetSelection: DiscountApplicationTargetSelection;
+  /** The type of line that the discount is applicable towards. */
+  targetType: DiscountApplicationTargetType;
+  /** The value of the discount application. */
+  value: PricingValue;
 };
 
 /** The discount codes applied to the cart. */
@@ -1046,6 +1279,8 @@ export type CartDiscountCodesUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** Possible error codes that can be returned by `CartUserError`. */
@@ -1066,6 +1301,8 @@ export enum CartErrorCode {
   Invalid = 'INVALID',
   /** Company location not found or not allowed. */
   InvalidCompanyLocation = 'INVALID_COMPANY_LOCATION',
+  /** The delivery address was not found. */
+  InvalidDeliveryAddressId = 'INVALID_DELIVERY_ADDRESS_ID',
   /** Delivery group was not found in cart. */
   InvalidDeliveryGroup = 'INVALID_DELIVERY_GROUP',
   /** Delivery option was not valid. */
@@ -1098,10 +1335,14 @@ export enum CartErrorCode {
   MissingNote = 'MISSING_NOTE',
   /** The note length must be below the specified maximum. */
   NoteTooLong = 'NOTE_TOO_LONG',
+  /** Only one delivery address can be selected. */
+  OnlyOneDeliveryAddressCanBeSelected = 'ONLY_ONE_DELIVERY_ADDRESS_CAN_BE_SELECTED',
   /** The payment method is not supported. */
   PaymentMethodNotSupported = 'PAYMENT_METHOD_NOT_SUPPORTED',
   /** The given province cannot be found. */
   ProvinceNotFound = 'PROVINCE_NOT_FOUND',
+  /** Too many delivery addresses on Cart. */
+  TooManyDeliveryAddresses = 'TOO_MANY_DELIVERY_ADDRESSES',
   /** A general error occurred during address validation. */
   UnspecifiedAddressError = 'UNSPECIFIED_ADDRESS_ERROR',
   /** Validation failed. */
@@ -1134,6 +1375,17 @@ export type CartFreePaymentMethodInput = {
   billingAddress: MailingAddressInput;
 };
 
+/** Return type for `cartGiftCardCodesRemove` mutation. */
+export type CartGiftCardCodesRemovePayload = {
+  __typename?: 'CartGiftCardCodesRemovePayload';
+  /** The updated cart. */
+  cart?: Maybe<Cart>;
+  /** The list of errors that occurred from executing the mutation. */
+  userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
+};
+
 /** Return type for `cartGiftCardCodesUpdate` mutation. */
 export type CartGiftCardCodesUpdatePayload = {
   __typename?: 'CartGiftCardCodesUpdatePayload';
@@ -1141,6 +1393,8 @@ export type CartGiftCardCodesUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** The input fields to create a cart. */
@@ -1158,6 +1412,8 @@ export type CartInput = {
    *
    */
   buyerIdentity?: InputMaybe<CartBuyerIdentityInput>;
+  /** The delivery-related fields for the cart. */
+  delivery?: InputMaybe<CartDeliveryInput>;
   /**
    * The case-insensitive discount codes that the customer added at checkout.
    *
@@ -1308,6 +1564,8 @@ export type CartLinesAddPayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** Return type for `cartLinesRemove` mutation. */
@@ -1317,6 +1575,8 @@ export type CartLinesRemovePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** Return type for `cartLinesUpdate` mutation. */
@@ -1326,6 +1586,8 @@ export type CartLinesUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /** The input fields to delete a cart metafield. */
@@ -1384,6 +1646,17 @@ export type CartNoteUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
+};
+
+/** An error occurred during the cart operation. */
+export type CartOperationError = {
+  __typename?: 'CartOperationError';
+  /** The error code. */
+  code: Scalars['String']['output'];
+  /** The error message. */
+  message?: Maybe<Scalars['String']['output']>;
 };
 
 /**
@@ -1424,6 +1697,8 @@ export type CartPaymentUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
 };
 
 /**
@@ -1456,6 +1731,60 @@ export type CartPreferencesInput = {
   wallet?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+/** Return type for `cartPrepareForCompletion` mutation. */
+export type CartPrepareForCompletionPayload = {
+  __typename?: 'CartPrepareForCompletionPayload';
+  /** The result of cart preparation for completion. */
+  result?: Maybe<CartPrepareForCompletionResult>;
+  /** The list of errors that occurred from executing the mutation. */
+  userErrors: Array<CartUserError>;
+};
+
+/** The result of cart preparation. */
+export type CartPrepareForCompletionResult = CartStatusNotReady | CartStatusReady | CartThrottled;
+
+/**
+ * A selectable delivery address for a cart.
+ *
+ */
+export type CartSelectableAddress = {
+  __typename?: 'CartSelectableAddress';
+  /** The delivery address. */
+  address: CartAddress;
+  /** A unique identifier for the address, specific to this cart. */
+  id: Scalars['ID']['output'];
+  /** This delivery address will not be associated with the buyer after a successful checkout. */
+  oneTimeUse: Scalars['Boolean']['output'];
+  /** Sets exactly one address as pre-selected for the buyer. */
+  selected: Scalars['Boolean']['output'];
+};
+
+/** The input fields for a selectable delivery address in a cart. */
+export type CartSelectableAddressInput = {
+  /** Exactly one kind of delivery address. */
+  address: CartAddressInput;
+  /** When true, this delivery address will not be associated with the buyer after a successful checkout. */
+  oneTimeUse?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets exactly one address as pre-selected for the buyer. */
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defines what kind of address validation is requested. */
+  validationStrategy?: InputMaybe<DeliveryAddressValidationStrategy>;
+};
+
+/** The input fields to update a line item on a cart. */
+export type CartSelectableAddressUpdateInput = {
+  /** Exactly one kind of delivery address. */
+  address?: InputMaybe<CartAddressInput>;
+  /** The id of the selectable address. */
+  id: Scalars['ID']['input'];
+  /** When true, this delivery address will not be associated with the buyer after a successful checkout. */
+  oneTimeUse?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Sets exactly one address as pre-selected for the buyer. */
+  selected?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Defines what kind of address validation is requested. */
+  validationStrategy?: InputMaybe<DeliveryAddressValidationStrategy>;
+};
+
 /**
  * The input fields for updating the selected delivery options for a delivery group.
  *
@@ -1474,6 +1803,24 @@ export type CartSelectedDeliveryOptionsUpdatePayload = {
   cart?: Maybe<Cart>;
   /** The list of errors that occurred from executing the mutation. */
   userErrors: Array<CartUserError>;
+  /** A list of warnings that occurred during the mutation. */
+  warnings: Array<CartWarning>;
+};
+
+/** Cart is not ready for payment update and completion. */
+export type CartStatusNotReady = {
+  __typename?: 'CartStatusNotReady';
+  /** The result of cart preparation for completion. */
+  cart?: Maybe<Cart>;
+  /** The list of errors that caused the cart to not be ready for payment update and completion. */
+  errors: Array<CartOperationError>;
+};
+
+/** Cart is ready for payment update and completion. */
+export type CartStatusReady = {
+  __typename?: 'CartStatusReady';
+  /** The result of cart preparation for completion. */
+  cart?: Maybe<Cart>;
 };
 
 /** Return type for `cartSubmitForCompletion` mutation. */
@@ -1487,6 +1834,17 @@ export type CartSubmitForCompletionPayload = {
 
 /** The result of cart submit completion. */
 export type CartSubmitForCompletionResult = SubmitAlreadyAccepted | SubmitFailed | SubmitSuccess | SubmitThrottled;
+
+/**
+ * Response signifying that the access to cart request is currently being throttled.
+ * The client can retry after `poll_after`.
+ *
+ */
+export type CartThrottled = {
+  __typename?: 'CartThrottled';
+  /** The polling delay. */
+  pollAfter: Scalars['DateTime']['output'];
+};
 
 /** Represents an error that happens during execution of a cart mutation. */
 export type CartUserError = DisplayableError & {
@@ -1510,6 +1868,38 @@ export type CartWalletPaymentMethodInput = {
   shopPayWalletContent?: InputMaybe<ShopPayWalletContentInput>;
 };
 
+/** A warning that occurred during a cart mutation. */
+export type CartWarning = {
+  __typename?: 'CartWarning';
+  /** The code of the warning. */
+  code: CartWarningCode;
+  /** The message text of the warning. */
+  message: Scalars['String']['output'];
+  /** The target of the warning. */
+  target: Scalars['ID']['output'];
+};
+
+/** The code for the cart warning. */
+export enum CartWarningCode {
+  /** A delivery address with the same details already exists on this cart. */
+  DuplicateDeliveryAddress = 'DUPLICATE_DELIVERY_ADDRESS',
+  /** The merchandise does not have enough stock. */
+  MerchandiseNotEnoughStock = 'MERCHANDISE_NOT_ENOUGH_STOCK',
+  /** The merchandise is out of stock. */
+  MerchandiseOutOfStock = 'MERCHANDISE_OUT_OF_STOCK',
+  /** Gift cards are not available as a payment method. */
+  PaymentsGiftCardsUnavailable = 'PAYMENTS_GIFT_CARDS_UNAVAILABLE'
+}
+
+/**
+ * A filter used to view a subset of products in a collection matching a specific category value.
+ *
+ */
+export type CategoryFilter = {
+  /** The id of the category to filter on. */
+  id: Scalars['String']['input'];
+};
+
 /**
  * A collection represents a grouping of products that a shop owner can create to
  * organize them or make their shops easier to browse.
@@ -1531,9 +1921,9 @@ export type Collection = HasMetafields & Node & OnlineStorePublishable & Trackab
   id: Scalars['ID']['output'];
   /** Image associated with the collection. */
   image?: Maybe<Image>;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The URL used for viewing the resource on the shop's Online Store. Returns `null` if the resource is currently not published to the Online Store sales channel. */
   onlineStoreUrl?: Maybe<Scalars['URL']['output']>;
@@ -1703,9 +2093,9 @@ export type Company = HasMetafields & Node & {
   externalId?: Maybe<Scalars['String']['output']>;
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The name of the company. */
   name: Scalars['String']['output'];
@@ -1752,9 +2142,9 @@ export type CompanyLocation = HasMetafields & Node & {
   id: Scalars['ID']['output'];
   /** The preferred locale of the company location. */
   locale?: Maybe<Scalars['String']['output']>;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The name of the company location. */
   name: Scalars['String']['output'];
@@ -1841,6 +2231,23 @@ export type ComponentizableCartLine = BaseCartLine & Node & {
 export type ComponentizableCartLineAttributeArgs = {
   key: Scalars['String']['input'];
 };
+
+/** Details for count of elements. */
+export type Count = {
+  __typename?: 'Count';
+  /** Count of elements. */
+  count: Scalars['Int']['output'];
+  /** Precision of count, how exact is the value. */
+  precision: CountPrecision;
+};
+
+/** The precision of the value returned by a count field. */
+export enum CountPrecision {
+  /** The count is at least the value. A limit was reached. */
+  AtLeast = 'AT_LEAST',
+  /** The count is exactly the value. */
+  Exact = 'EXACT'
+}
 
 /** A country. */
 export type Country = {
@@ -2745,9 +3152,9 @@ export type Customer = HasMetafields & {
   id: Scalars['ID']['output'];
   /** The customer’s last name. */
   lastName?: Maybe<Scalars['String']['output']>;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The number of orders that the customer has made at the store in their lifetime. */
   numberOfOrders: Scalars['UnsignedInt64']['output'];
@@ -3526,9 +3933,9 @@ export type GeoCoordinateInput = {
 
 /** Represents information about the metafields associated to the specified resource. */
 export type HasMetafields = {
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
 };
 
@@ -4032,9 +4439,9 @@ export type Location = HasMetafields & Node & {
   address: LocationAddress;
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The name of the location. */
   name: Scalars['String']['output'];
@@ -4297,9 +4704,9 @@ export type Market = HasMetafields & Node & {
   handle: Scalars['String']['output'];
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
 };
 
@@ -4474,6 +4881,8 @@ export enum MenuItemType {
   Collection = 'COLLECTION',
   /** A collection link. */
   Collections = 'COLLECTIONS',
+  /** A customer account page link. */
+  CustomerAccountPage = 'CUSTOMER_ACCOUNT_PAGE',
   /** A frontpage link. */
   Frontpage = 'FRONTPAGE',
   /** An http link. */
@@ -4543,6 +4952,8 @@ export type MetafieldReferencesArgs = {
 
 /** Possible error codes that can be returned by `MetafieldDeleteUserError`. */
 export enum MetafieldDeleteErrorCode {
+  /** The current app is not authorized to perform this action. */
+  AppNotAuthorized = 'APP_NOT_AUTHORIZED',
   /** The owner ID is invalid. */
   InvalidOwner = 'INVALID_OWNER',
   /** Metafield not found. */
@@ -4629,6 +5040,8 @@ export type MetafieldsSetUserError = DisplayableError & {
 
 /** Possible error codes that can be returned by `MetafieldsSetUserError`. */
 export enum MetafieldsSetUserErrorCode {
+  /** The current app is not authorized to perform this action. */
+  AppNotAuthorized = 'APP_NOT_AUTHORIZED',
   /** The input value is blank. */
   Blank = 'BLANK',
   /** The input value isn't included in the list. */
@@ -4822,8 +5235,16 @@ export type Mutation = {
   cartBuyerIdentityUpdate?: Maybe<CartBuyerIdentityUpdatePayload>;
   /** Creates a new cart. */
   cartCreate?: Maybe<CartCreatePayload>;
+  /** Adds delivery addresses to the cart. */
+  cartDeliveryAddressesAdd?: Maybe<CartDeliveryAddressesAddPayload>;
+  /** Removes delivery addresses from the cart. */
+  cartDeliveryAddressesRemove?: Maybe<CartDeliveryAddressesRemovePayload>;
+  /** Updates one or more delivery addresses on a cart. */
+  cartDeliveryAddressesUpdate?: Maybe<CartDeliveryAddressesUpdatePayload>;
   /** Updates the discount codes applied to the cart. */
   cartDiscountCodesUpdate?: Maybe<CartDiscountCodesUpdatePayload>;
+  /** Removes the gift card codes applied to the cart. */
+  cartGiftCardCodesRemove?: Maybe<CartGiftCardCodesRemovePayload>;
   /** Updates the gift card codes applied to the cart. */
   cartGiftCardCodesUpdate?: Maybe<CartGiftCardCodesUpdatePayload>;
   /** Adds a merchandise line to the cart. */
@@ -4845,6 +5266,8 @@ export type Mutation = {
   cartNoteUpdate?: Maybe<CartNoteUpdatePayload>;
   /** Update the customer's payment method that will be used to checkout. */
   cartPaymentUpdate?: Maybe<CartPaymentUpdatePayload>;
+  /** Prepare the cart for cart checkout completion. */
+  cartPrepareForCompletion?: Maybe<CartPrepareForCompletionPayload>;
   /** Update the selected delivery options for a delivery group. */
   cartSelectedDeliveryOptionsUpdate?: Maybe<CartSelectedDeliveryOptionsUpdatePayload>;
   /** Submit the cart for checkout completion. */
@@ -4950,9 +5373,37 @@ export type MutationCartCreateArgs = {
 
 
 /** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
+export type MutationCartDeliveryAddressesAddArgs = {
+  addresses: Array<CartSelectableAddressInput>;
+  cartId: Scalars['ID']['input'];
+};
+
+
+/** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
+export type MutationCartDeliveryAddressesRemoveArgs = {
+  addressIds: Array<Scalars['ID']['input']>;
+  cartId: Scalars['ID']['input'];
+};
+
+
+/** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
+export type MutationCartDeliveryAddressesUpdateArgs = {
+  addresses: Array<CartSelectableAddressUpdateInput>;
+  cartId: Scalars['ID']['input'];
+};
+
+
+/** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
 export type MutationCartDiscountCodesUpdateArgs = {
   cartId: Scalars['ID']['input'];
   discountCodes?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+
+/** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
+export type MutationCartGiftCardCodesRemoveArgs = {
+  appliedGiftCardIds: Array<Scalars['ID']['input']>;
+  cartId: Scalars['ID']['input'];
 };
 
 
@@ -5007,6 +5458,12 @@ export type MutationCartNoteUpdateArgs = {
 export type MutationCartPaymentUpdateArgs = {
   cartId: Scalars['ID']['input'];
   payment: CartPaymentInput;
+};
+
+
+/** The schema’s entry-point for mutations. This acts as the public, top-level API from which all mutation queries must start. */
+export type MutationCartPrepareForCompletionArgs = {
+  cartId: Scalars['ID']['input'];
 };
 
 
@@ -5142,8 +5599,8 @@ export type MutationShopPayPaymentRequestSessionSubmitArgs = {
 /**
  * An object with an ID field to support global identification, in accordance with the
  * [Relay specification](https://relay.dev/graphql/objectidentification.htm#sec-Node-Interface).
- * This interface is used by the [node](https://shopify.dev/api/admin-graphql/unstable/queries/node)
- * and [nodes](https://shopify.dev/api/admin-graphql/unstable/queries/nodes) queries.
+ * This interface is used by the [node](/docs/api/storefront/latest/queries/node)
+ * and [nodes](/docs/api/storefront/latest/queries/nodes) queries.
  *
  */
 export type Node = {
@@ -5198,9 +5655,9 @@ export type Order = HasMetafields & Node & {
   id: Scalars['ID']['output'];
   /** List of the order’s line items. */
   lineItems: OrderLineItemConnection;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /**
    * Unique identifier for the order that appears on the order.
@@ -5470,9 +5927,9 @@ export type Page = HasMetafields & Node & OnlineStorePublishable & Trackable & {
   handle: Scalars['String']['output'];
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The URL used for viewing the resource on the shop's Online Store. Returns `null` if the resource is currently not published to the Online Store sales channel. */
   onlineStoreUrl?: Maybe<Scalars['URL']['output']>;
@@ -5559,14 +6016,27 @@ export enum PageSortKeys {
   UpdatedAt = 'UPDATED_AT'
 }
 
+/** Type for paginating through multiple sitemap's resources. */
+export type PaginatedSitemapResources = {
+  __typename?: 'PaginatedSitemapResources';
+  /** Whether there are more pages to fetch following the current page. */
+  hasNextPage: Scalars['Boolean']['output'];
+  /**
+   * List of sitemap resources for the current page.
+   * Note: The number of items varies between 0 and 250 per page.
+   *
+   */
+  items: Array<SitemapResourceInterface>;
+};
+
 /** Settings related to payments. */
 export type PaymentSettings = {
   __typename?: 'PaymentSettings';
-  /** List of the card brands which the shop accepts. */
+  /** List of the card brands which the business entity accepts. */
   acceptedCardBrands: Array<CardBrand>;
   /** The url pointing to the endpoint to vault credit cards. */
   cardVaultUrl: Scalars['URL']['output'];
-  /** The country where the shop is located. */
+  /** The country where the shop is located. When multiple business entities operate within the shop, then this will represent the country of the business entity that's serving the specified buyer context. */
   countryCode: CountryCode;
   /** The three-letter code for the shop's primary currency. */
   currencyCode: CurrencyCode;
@@ -5578,7 +6048,7 @@ export type PaymentSettings = {
   enabledPresentmentCurrencies: Array<CurrencyCode>;
   /** The shop’s Shopify Payments account ID. */
   shopifyPaymentsAccountId?: Maybe<Scalars['String']['output']>;
-  /** List of the digital wallets which the shop supports. */
+  /** List of the digital wallets which the business entity supports. */
   supportedDigitalWallets: Array<DigitalWallet>;
 };
 
@@ -5655,26 +6125,113 @@ export type PricingPercentageValue = {
 export type PricingValue = MoneyV2 | PricingPercentageValue;
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type Product = HasMetafields & Node & OnlineStorePublishable & Trackable & {
   __typename?: 'Product';
+  /**
+   * A list of variants whose selected options differ with the provided selected options by one, ordered by variant id.
+   * If selected options are not provided, adjacent variants to the first available variant is returned.
+   *
+   * Note that this field returns an array of variants. In most cases, the number of variants in this array will be low.
+   * However, with a low number of options and a high number of values per option, the number of variants returned
+   * here can be high. In such cases, it recommended to avoid using this field.
+   *
+   * This list of variants can be used in combination with the `options` field to build a rich variant picker that
+   * includes variant availability or other variant information.
+   *
+   */
+  adjacentVariants: Array<ProductVariant>;
   /** Indicates if at least one product variant is available for sale. */
   availableForSale: Scalars['Boolean']['output'];
-  /** List of collections a product belongs to. */
+  /** The category of a product from [Shopify's Standard Product Taxonomy](https://shopify.github.io/product-taxonomy/releases/unstable/?categoryId=sg-4-17-2-17). */
+  category?: Maybe<TaxonomyCategory>;
+  /** A list of [collections](/docs/api/storefront/latest/objects/Collection) that include the product. */
   collections: CollectionConnection;
-  /** The compare at price of the product across all variants. */
+  /** The [compare-at price range](https://help.shopify.com/manual/products/details/product-pricing/sale-pricing) of the product in the shop's default currency. */
   compareAtPriceRange: ProductPriceRange;
   /** The date and time when the product was created. */
   createdAt: Scalars['DateTime']['output'];
-  /** Stripped description of the product, single line with HTML tags removed. */
+  /** A single-line description of the product, with [HTML tags](https://developer.mozilla.org/en-US/docs/Web/HTML) removed. */
   description: Scalars['String']['output'];
-  /** The description of the product, complete with HTML formatting. */
+  /**
+   * The description of the product, with
+   * HTML tags. For example, the description might include
+   * bold `<strong></strong>` and italic `<i></i>` text.
+   *
+   */
   descriptionHtml: Scalars['HTML']['output'];
+  /**
+   * An encoded string containing all option value combinations
+   * with a corresponding variant that is currently available for sale.
+   *
+   * Integers represent option and values:
+   * [0,1] represents option_value at array index 0 for the option at array index 0
+   *
+   * `:`, `,`, ` ` and `-` are control characters.
+   * `:` indicates a new option. ex: 0:1 indicates value 0 for the option in position 1, value 1 for the option in position 2.
+   * `,` indicates the end of a repeated prefix, mulitple consecutive commas indicate the end of multiple repeated prefixes.
+   * ` ` indicates a gap in the sequence of option values. ex: 0 4 indicates option values in position 0 and 4 are present.
+   * `-` indicates a continuous range of option values. ex: 0 1-3 4
+   *
+   * Decoding process:
+   *
+   * Example options: [Size, Color, Material]
+   * Example values: [[Small, Medium, Large], [Red, Blue], [Cotton, Wool]]
+   * Example encoded string: "0:0:0,1:0-1,,1:0:0-1,1:1,,2:0:1,1:0,,"
+   *
+   * Step 1: Expand ranges into the numbers they represent: "0:0:0,1:0 1,,1:0:0 1,1:1,,2:0:1,1:0,,"
+   * Step 2: Expand repeated prefixes: "0:0:0,0:1:0 1,1:0:0 1,1:1:1,2:0:1,2:1:0,"
+   * Step 3: Expand shared prefixes so data is encoded as a string: "0:0:0,0:1:0,0:1:1,1:0:0,1:0:1,1:1:1,2:0:1,2:1:0,"
+   * Step 4: Map to options + option values to determine existing variants:
+   *
+   * [Small, Red, Cotton] (0:0:0), [Small, Blue, Cotton] (0:1:0), [Small, Blue, Wool] (0:1:1),
+   * [Medium, Red, Cotton] (1:0:0), [Medium, Red, Wool] (1:0:1), [Medium, Blue, Wool] (1:1:1),
+   * [Large, Red, Wool] (2:0:1), [Large, Blue, Cotton] (2:1:0).
+   *
+   *
+   */
+  encodedVariantAvailability?: Maybe<Scalars['String']['output']>;
+  /**
+   * An encoded string containing all option value combinations with a corresponding variant.
+   *
+   * Integers represent option and values:
+   * [0,1] represents option_value at array index 0 for the option at array index 0
+   *
+   * `:`, `,`, ` ` and `-` are control characters.
+   * `:` indicates a new option. ex: 0:1 indicates value 0 for the option in position 1, value 1 for the option in position 2.
+   * `,` indicates the end of a repeated prefix, mulitple consecutive commas indicate the end of multiple repeated prefixes.
+   * ` ` indicates a gap in the sequence of option values. ex: 0 4 indicates option values in position 0 and 4 are present.
+   * `-` indicates a continuous range of option values. ex: 0 1-3 4
+   *
+   * Decoding process:
+   *
+   * Example options: [Size, Color, Material]
+   * Example values: [[Small, Medium, Large], [Red, Blue], [Cotton, Wool]]
+   * Example encoded string: "0:0:0,1:0-1,,1:0:0-1,1:1,,2:0:1,1:0,,"
+   *
+   * Step 1: Expand ranges into the numbers they represent: "0:0:0,1:0 1,,1:0:0 1,1:1,,2:0:1,1:0,,"
+   * Step 2: Expand repeated prefixes: "0:0:0,0:1:0 1,1:0:0 1,1:1:1,2:0:1,2:1:0,"
+   * Step 3: Expand shared prefixes so data is encoded as a string: "0:0:0,0:1:0,0:1:1,1:0:0,1:0:1,1:1:1,2:0:1,2:1:0,"
+   * Step 4: Map to options + option values to determine existing variants:
+   *
+   * [Small, Red, Cotton] (0:0:0), [Small, Blue, Cotton] (0:1:0), [Small, Blue, Wool] (0:1:1),
+   * [Medium, Red, Cotton] (1:0:0), [Medium, Red, Wool] (1:0:1), [Medium, Blue, Wool] (1:1:1),
+   * [Large, Red, Wool] (2:0:1), [Large, Blue, Cotton] (2:1:0).
+   *
+   *
+   */
+  encodedVariantExistence?: Maybe<Scalars['String']['output']>;
   /**
    * The featured image for the product.
    *
@@ -5683,8 +6240,9 @@ export type Product = HasMetafields & Node & OnlineStorePublishable & Trackable 
    */
   featuredImage?: Maybe<Image>;
   /**
-   * A human-friendly unique string for the Product automatically generated from its title.
-   * They are used by the Liquid templating language to refer to objects.
+   * A unique, human-readable string of the product's title.
+   * A handle can contain letters, hyphens (`-`), and numbers, but no spaces.
+   * The handle is used in the online store URL for the product.
    *
    */
   handle: Scalars['String']['output'];
@@ -5694,41 +6252,71 @@ export type Product = HasMetafields & Node & OnlineStorePublishable & Trackable 
   images: ImageConnection;
   /** Whether the product is a gift card. */
   isGiftCard: Scalars['Boolean']['output'];
-  /** The media associated with the product. */
+  /** The [media](/docs/apps/build/online-store/product-media) that are associated with the product. Valid media are images, 3D models, videos. */
   media: MediaConnection;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /**
-   * The URL used for viewing the resource on the shop's Online Store. Returns
-   * `null` if the resource is currently not published to the Online Store sales channel.
+   * The product's URL on the online store.
+   * If `null`, then the product isn't published to the online store sales channel.
    *
    */
   onlineStoreUrl?: Maybe<Scalars['URL']['output']>;
-  /** List of product options. */
+  /** A list of product options. The limit is defined by the [shop's resource limits for product options](/docs/api/admin-graphql/latest/objects/Shop#field-resourcelimits) (`Shop.resourceLimits.maxProductOptions`). */
   options: Array<ProductOption>;
-  /** The price range. */
+  /**
+   * The minimum and maximum prices of a product, expressed in decimal numbers.
+   * For example, if the product is priced between $10.00 and $50.00,
+   * then the price range is $10.00 - $50.00.
+   *
+   */
   priceRange: ProductPriceRange;
-  /** A categorization that a product can be tagged with, commonly used for filtering and searching. */
+  /**
+   * The [product type](https://help.shopify.com/manual/products/details/product-type)
+   * that merchants define.
+   *
+   */
   productType: Scalars['String']['output'];
   /** The date and time when the product was published to the channel. */
   publishedAt: Scalars['DateTime']['output'];
-  /** Whether the product can only be purchased with a selling plan. */
+  /** Whether the product can only be purchased with a [selling plan](/docs/apps/build/purchase-options/subscriptions/selling-plans). Products that are sold on subscription (`requiresSellingPlan: true`) can be updated only for online stores. If you update a product to be subscription-only (`requiresSellingPlan:false`), then the product is unpublished from all channels, except the online store. */
   requiresSellingPlan: Scalars['Boolean']['output'];
-  /** A list of a product's available selling plan groups. A selling plan group represents a selling method. For example, 'Subscribe and save' is a selling method where customers pay for goods or services per delivery. A selling plan group contains individual selling plans. */
+  /**
+   * Find an active product variant based on selected options, availability or the first variant.
+   *
+   * All arguments are optional. If no selected options are provided, the first available variant is returned.
+   * If no variants are available, the first variant is returned.
+   *
+   */
+  selectedOrFirstAvailableVariant?: Maybe<ProductVariant>;
+  /** A list of all [selling plan groups](/docs/apps/build/purchase-options/subscriptions/selling-plans/build-a-selling-plan) that are associated with the product either directly, or through the product's variants. */
   sellingPlanGroups: SellingPlanGroupConnection;
-  /** The product's SEO information. */
+  /**
+   * The [SEO title and description](https://help.shopify.com/manual/promoting-marketing/seo/adding-keywords)
+   * that are associated with a product.
+   *
+   */
   seo: Seo;
   /**
-   * A comma separated list of tags that have been added to the product.
-   * Additional access scope required for private apps: unauthenticated_read_product_tags.
+   * A comma-separated list of searchable keywords that are
+   * associated with the product. For example, a merchant might apply the `sports`
+   * and `summer` tags to products that are associated with sportwear for summer.
+   * Updating `tags` overwrites any existing tags that were previously added to the product.
+   * To add new tags without overwriting existing tags,
+   * use the GraphQL Admin API's [`tagsAdd`](/docs/api/admin-graphql/latest/mutations/tagsadd)
+   * mutation.
    *
    */
   tags: Array<Scalars['String']['output']>;
-  /** The product’s title. */
+  /**
+   * The name for the product that displays to customers. The title is used to construct the product's handle.
+   * For example, if a product is titled "Black Sunglasses", then the handle is `black-sunglasses`.
+   *
+   */
   title: Scalars['String']['output'];
-  /** The total quantity of inventory in stock for this Product. */
+  /** The quantity of inventory that's in stock. */
   totalInventory?: Maybe<Scalars['Int']['output']>;
   /** URL parameters to be added to a page URL to track the origin of on-site search traffic for [analytics reporting](https://help.shopify.com/manual/reports-and-analytics/shopify-reports/report-types/default-reports/behaviour-reports). Returns a result when accessed through the [search](https://shopify.dev/docs/api/storefront/current/queries/search) or [predictiveSearch](https://shopify.dev/docs/api/storefront/current/queries/predictiveSearch) queries, otherwise returns null. */
   trackingParameters?: Maybe<Scalars['String']['output']>;
@@ -5747,18 +6335,46 @@ export type Product = HasMetafields & Node & OnlineStorePublishable & Trackable 
    *
    */
   variantBySelectedOptions?: Maybe<ProductVariant>;
-  /** List of the product’s variants. */
+  /** A list of [variants](/docs/api/storefront/latest/objects/ProductVariant) that are associated with the product. */
   variants: ProductVariantConnection;
-  /** The product’s vendor name. */
+  /** The number of [variants](/docs/api/storefront/latest/objects/ProductVariant) that are associated with the product. */
+  variantsCount?: Maybe<Count>;
+  /** The name of the product's vendor. */
   vendor: Scalars['String']['output'];
 };
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
+ *
+ */
+export type ProductAdjacentVariantsArgs = {
+  caseInsensitiveMatch?: InputMaybe<Scalars['Boolean']['input']>;
+  ignoreUnknownOptions?: InputMaybe<Scalars['Boolean']['input']>;
+  selectedOptions?: InputMaybe<Array<SelectedOptionInput>>;
+};
+
+
+/**
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductCollectionsArgs = {
@@ -5771,10 +6387,16 @@ export type ProductCollectionsArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductDescriptionArgs = {
@@ -5783,10 +6405,16 @@ export type ProductDescriptionArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductImagesArgs = {
@@ -5800,10 +6428,16 @@ export type ProductImagesArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductMediaArgs = {
@@ -5817,10 +6451,16 @@ export type ProductMediaArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductMetafieldArgs = {
@@ -5830,10 +6470,16 @@ export type ProductMetafieldArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductMetafieldsArgs = {
@@ -5842,10 +6488,16 @@ export type ProductMetafieldsArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductOptionsArgs = {
@@ -5854,10 +6506,36 @@ export type ProductOptionsArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
+ *
+ */
+export type ProductSelectedOrFirstAvailableVariantArgs = {
+  caseInsensitiveMatch?: InputMaybe<Scalars['Boolean']['input']>;
+  ignoreUnknownOptions?: InputMaybe<Scalars['Boolean']['input']>;
+  selectedOptions?: InputMaybe<Array<SelectedOptionInput>>;
+};
+
+
+/**
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductSellingPlanGroupsArgs = {
@@ -5870,10 +6548,16 @@ export type ProductSellingPlanGroupsArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductVariantBySelectedOptionsArgs = {
@@ -5884,10 +6568,16 @@ export type ProductVariantBySelectedOptionsArgs = {
 
 
 /**
- * A product represents an individual item for sale in a Shopify store. Products are often physical, but they don't have to be.
- * For example, a digital download (such as a movie, music or ebook file) also
- * qualifies as a product, as do services (such as equipment rental, work for hire,
- * customization of another product or an extended warranty).
+ * The `Product` object lets you manage products in a merchant’s store.
+ *
+ * Products are the goods and services that merchants offer to customers.
+ * They can include various details such as title, description, price, images, and options such as size or color.
+ * You can use [product variants](/docs/api/storefront/latest/objects/ProductVariant)
+ * to create or update different versions of the same product.
+ * You can also add or update product [media](/docs/api/storefront/latest/interfaces/Media).
+ * Products can be organized by grouping them into a [collection](/docs/api/storefront/latest/objects/Collection).
+ *
+ * Learn more about working with [products and collections](/docs/storefronts/headless/building-with-the-storefront-api/products-collections).
  *
  */
 export type ProductVariantsArgs = {
@@ -5960,6 +6650,8 @@ export type ProductEdge = {
 export type ProductFilter = {
   /** Filter on if the product is available for sale. */
   available?: InputMaybe<Scalars['Boolean']['input']>;
+  /** A product category to filter on. */
+  category?: InputMaybe<CategoryFilter>;
   /** A range of prices to filter with-in. */
   price?: InputMaybe<PriceRangeFilter>;
   /** A product metafield to filter on. */
@@ -5970,6 +6662,8 @@ export type ProductFilter = {
   productVendor?: InputMaybe<Scalars['String']['input']>;
   /** A product tag to filter on. */
   tag?: InputMaybe<Scalars['String']['input']>;
+  /** A standard product attribute metafield to filter on. */
+  taxonomyMetafield?: InputMaybe<TaxonomyMetafieldFilter>;
   /** A variant metafield to filter on. */
   variantMetafield?: InputMaybe<MetafieldFilter>;
   /** A variant option to filter on. */
@@ -6033,6 +6727,14 @@ export type ProductOption = Node & {
  */
 export type ProductOptionValue = Node & {
   __typename?: 'ProductOptionValue';
+  /**
+   * The product variant that combines this option value with the
+   * lowest-position option values for all other options.
+   *
+   * This field will always return a variant, provided a variant including this option value exists.
+   *
+   */
+  firstSelectableVariant?: Maybe<ProductVariant>;
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
   /** The name of the product option value. */
@@ -6133,9 +6835,9 @@ export type ProductVariant = HasMetafields & Node & {
   id: Scalars['ID']['output'];
   /** Image associated with the product variant. This field falls back to the product image if no image is available. */
   image?: Maybe<Image>;
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The product variant’s price. */
   price: MoneyV2;
@@ -6164,6 +6866,8 @@ export type ProductVariant = HasMetafields & Node & {
   selectedOptions: Array<SelectedOption>;
   /** Represents an association between a variant and a selling plan. Selling plan allocations describe which selling plans are available for each variant, and what their impact is on pricing. */
   sellingPlanAllocations: SellingPlanAllocationConnection;
+  /** The Shop Pay Installments pricing information for the product variant. */
+  shopPayInstallmentsPricing?: Maybe<ShopPayInstallmentsProductVariantPricing>;
   /** The SKU (stock keeping unit) associated with the variant. */
   sku?: Maybe<Scalars['String']['output']>;
   /** The in-store pickup availability of this variant by location. */
@@ -6502,6 +7206,8 @@ export type QueryRoot = {
   pageByHandle?: Maybe<Page>;
   /** List of the shop's pages. */
   pages: PageConnection;
+  /** Settings related to payments. */
+  paymentSettings: PaymentSettings;
   /** List of the predictive search results. */
   predictiveSearch?: Maybe<PredictiveSearchResult>;
   /** Fetch a specific `Product` by one of its unique attributes. */
@@ -6526,7 +7232,7 @@ export type QueryRoot = {
   productTags: StringConnection;
   /** List of product types for the shop's products that are published to your app. */
   productTypes: StringConnection;
-  /** List of the shop’s products. For storefront search, use [`search` query](https://shopify.dev/docs/api/storefront/latest/queries/search). */
+  /** Returns a list of the shop's products. For storefront search, use the [`search`](https://shopify.dev/docs/api/storefront/latest/queries/search) query. */
   products: ProductConnection;
   /** The list of public Storefront API versions, including supported, release candidate and unstable versions. */
   publicApiVersions: Array<ApiVersion>;
@@ -6534,6 +7240,8 @@ export type QueryRoot = {
   search: SearchResultItemConnection;
   /** The shop associated with the storefront access token. */
   shop: Shop;
+  /** Contains all fields required to generate sitemaps. */
+  sitemap: Sitemap;
   /** A list of redirects for a shop. */
   urlRedirects: UrlRedirectConnection;
 };
@@ -6772,6 +7480,12 @@ export type QueryRootSearchArgs = {
 
 
 /** The schema’s entry-point for queries. This acts as the public, top-level API from which all queries must start. */
+export type QueryRootSitemapArgs = {
+  type: SitemapType;
+};
+
+
+/** The schema’s entry-point for queries. This acts as the public, top-level API from which all queries must start. */
 export type QueryRootUrlRedirectsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -6948,9 +7662,9 @@ export type SellingPlan = HasMetafields & {
   description?: Maybe<Scalars['String']['output']>;
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** The name of the selling plan. For example, '6 weeks of prepaid granola, delivered weekly'. */
   name: Scalars['String']['output'];
@@ -7187,7 +7901,7 @@ export type SellingPlanOption = {
 export type SellingPlanPercentagePriceAdjustment = {
   __typename?: 'SellingPlanPercentagePriceAdjustment';
   /** The percentage value of the price adjustment. */
-  adjustmentPercentage: Scalars['Int']['output'];
+  adjustmentPercentage: Scalars['Float']['output'];
 };
 
 /** Represents by how much the price of a variant associated with a selling plan is adjusted. Each variant can have up to two price adjustments. If a variant has multiple price adjustments, then the first price adjustment applies when the variant is initially purchased. The second price adjustment applies after a certain number of orders (specified by the `orderCount` field) are made. If a selling plan doesn't have any price adjustments, then the unadjusted price of the variant is the effective price. */
@@ -7229,9 +7943,9 @@ export type Shop = HasMetafields & Node & {
   description?: Maybe<Scalars['String']['output']>;
   /** A globally-unique ID. */
   id: Scalars['ID']['output'];
-  /** Returns a metafield found by namespace and key. */
+  /** A [custom field](https://shopify.dev/docs/apps/build/custom-data), including its `namespace` and `key`, that's associated with a Shopify resource for the purposes of adding and storing additional information. */
   metafield?: Maybe<Metafield>;
-  /** The metafields associated with the resource matching the supplied list of namespaces and keys. */
+  /** A list of [custom fields](/docs/apps/build/custom-data) that a merchant associates with a Shopify resource. */
   metafields: Array<Maybe<Metafield>>;
   /** A string representing the way currency is formatted when the currency isn’t specified. */
   moneyFormat: Scalars['String']['output'];
@@ -7249,6 +7963,8 @@ export type Shop = HasMetafields & Node & {
   shippingPolicy?: Maybe<ShopPolicy>;
   /** Countries that the shop ships to. */
   shipsToCountries: Array<CountryCode>;
+  /** The Shop Pay Installments pricing information for the shop. */
+  shopPayInstallmentsPricing?: Maybe<ShopPayInstallmentsPricing>;
   /** The shop’s subscription policy. */
   subscriptionPolicy?: Maybe<ShopPolicyWithDefault>;
   /** The shop’s terms of service. */
@@ -7266,6 +7982,80 @@ export type ShopMetafieldArgs = {
 /** Shop represents a collection of the general settings and information about the shop. */
 export type ShopMetafieldsArgs = {
   identifiers: Array<HasMetafieldsIdentifier>;
+};
+
+/** The financing plan in Shop Pay Installments. */
+export type ShopPayInstallmentsFinancingPlan = Node & {
+  __typename?: 'ShopPayInstallmentsFinancingPlan';
+  /** A globally-unique ID. */
+  id: Scalars['ID']['output'];
+  /** The maximum price to qualify for the financing plan. */
+  maxPrice: MoneyV2;
+  /** The minimum price to qualify for the financing plan. */
+  minPrice: MoneyV2;
+  /** The terms of the financing plan. */
+  terms: Array<ShopPayInstallmentsFinancingPlanTerm>;
+};
+
+/** The payment frequency for a Shop Pay Installments Financing Plan. */
+export enum ShopPayInstallmentsFinancingPlanFrequency {
+  /** Monthly payment frequency. */
+  Monthly = 'MONTHLY',
+  /** Weekly payment frequency. */
+  Weekly = 'WEEKLY'
+}
+
+/** The terms of the financing plan in Shop Pay Installments. */
+export type ShopPayInstallmentsFinancingPlanTerm = Node & {
+  __typename?: 'ShopPayInstallmentsFinancingPlanTerm';
+  /** The annual percentage rate (APR) of the financing plan. */
+  apr: Scalars['Int']['output'];
+  /** The payment frequency for the financing plan. */
+  frequency: ShopPayInstallmentsFinancingPlanFrequency;
+  /** A globally-unique ID. */
+  id: Scalars['ID']['output'];
+  /** The number of installments for the financing plan. */
+  installmentsCount?: Maybe<Count>;
+  /** The type of loan for the financing plan. */
+  loanType: ShopPayInstallmentsLoan;
+};
+
+/** The loan type for a Shop Pay Installments Financing Plan Term. */
+export enum ShopPayInstallmentsLoan {
+  /** An interest-bearing loan type. */
+  Interest = 'INTEREST',
+  /** A split-pay loan type. */
+  SplitPay = 'SPLIT_PAY',
+  /** A zero-percent loan type. */
+  ZeroPercent = 'ZERO_PERCENT'
+}
+
+/** The result for a Shop Pay Installments pricing request. */
+export type ShopPayInstallmentsPricing = {
+  __typename?: 'ShopPayInstallmentsPricing';
+  /** The financing plans available for the given price range. */
+  financingPlans: Array<ShopPayInstallmentsFinancingPlan>;
+  /** The maximum price to qualify for financing. */
+  maxPrice: MoneyV2;
+  /** The minimum price to qualify for financing. */
+  minPrice: MoneyV2;
+};
+
+/** The shop pay installments pricing information for a product variant. */
+export type ShopPayInstallmentsProductVariantPricing = Node & {
+  __typename?: 'ShopPayInstallmentsProductVariantPricing';
+  /** Whether the product variant is available. */
+  available: Scalars['Boolean']['output'];
+  /** Whether the product variant is eligible for Shop Pay Installments. */
+  eligible: Scalars['Boolean']['output'];
+  /** The full price of the product variant. */
+  fullPrice: MoneyV2;
+  /** The ID of the product variant. */
+  id: Scalars['ID']['output'];
+  /** The number of payment terms available for the product variant. */
+  installmentsCount?: Maybe<Count>;
+  /** The price per term for the product variant. */
+  pricePerTerm: MoneyV2;
 };
 
 /** Represents a Shop Pay payment request. */
@@ -7650,6 +8440,99 @@ export type ShopPolicyWithDefault = {
   url: Scalars['URL']['output'];
 };
 
+/** Contains all fields required to generate sitemaps. */
+export type Sitemap = {
+  __typename?: 'Sitemap';
+  /** The number of sitemap's pages for a given type. */
+  pagesCount?: Maybe<Count>;
+  /**
+   * A list of sitemap's resources for a given type.
+   *
+   * Important Notes:
+   *   - The number of items per page varies from 0 to 250.
+   *   - Empty pages (0 items) may occur and do not necessarily indicate the end of results.
+   *   - Always check `hasNextPage` to determine if more pages are available.
+   *
+   */
+  resources?: Maybe<PaginatedSitemapResources>;
+};
+
+
+/** Contains all fields required to generate sitemaps. */
+export type SitemapResourcesArgs = {
+  page: Scalars['Int']['input'];
+};
+
+/** Represents a sitemap's image. */
+export type SitemapImage = {
+  __typename?: 'SitemapImage';
+  /** Image's alt text. */
+  alt?: Maybe<Scalars['String']['output']>;
+  /** Path to the image. */
+  filepath?: Maybe<Scalars['String']['output']>;
+  /** The date and time when the image was updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Represents a sitemap resource that is not a metaobject. */
+export type SitemapResource = SitemapResourceInterface & {
+  __typename?: 'SitemapResource';
+  /** Resource's handle. */
+  handle: Scalars['String']['output'];
+  /** Resource's image. */
+  image?: Maybe<SitemapImage>;
+  /** Resource's title. */
+  title?: Maybe<Scalars['String']['output']>;
+  /** The date and time when the resource was updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Represents the common fields for all sitemap resource types. */
+export type SitemapResourceInterface = {
+  /** Resource's handle. */
+  handle: Scalars['String']['output'];
+  /** The date and time when the resource was updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * A SitemapResourceMetaobject represents a metaobject with
+ * [the `renderable` capability](https://shopify.dev/docs/apps/build/custom-data/metaobjects/use-metaobject-capabilities#render-metaobjects-as-web-pages).
+ *
+ */
+export type SitemapResourceMetaobject = SitemapResourceInterface & {
+  __typename?: 'SitemapResourceMetaobject';
+  /** Resource's handle. */
+  handle: Scalars['String']['output'];
+  /** The URL handle for accessing pages of this metaobject type in the Online Store. */
+  onlineStoreUrlHandle?: Maybe<Scalars['String']['output']>;
+  /** The type of the metaobject. Defines the namespace of its associated metafields. */
+  type: Scalars['String']['output'];
+  /** The date and time when the resource was updated. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** The types of resources potentially present in a sitemap. */
+export enum SitemapType {
+  /** Articles present in the sitemap. */
+  Article = 'ARTICLE',
+  /** Blogs present in the sitemap. */
+  Blog = 'BLOG',
+  /** Collections present in the sitemap. */
+  Collection = 'COLLECTION',
+  /**
+   * Metaobjects present in the sitemap. Only metaobject types with the
+   * [`renderable` capability](https://shopify.dev/docs/apps/build/custom-data/metaobjects/use-metaobject-capabilities#render-metaobjects-as-web-pages)
+   * are included in sitemap.
+   *
+   */
+  Metaobject = 'METAOBJECT',
+  /** Pages present in the sitemap. */
+  Page = 'PAGE',
+  /** Products present in the sitemap. */
+  Product = 'PRODUCT'
+}
+
 /**
  * The availability of a product variant at a particular location.
  * Local pick-up must be enabled in the  store's shipping settings, otherwise this will return an empty result.
@@ -7694,13 +8577,15 @@ export type StoreAvailabilityEdge = {
 };
 
 /**
- * An auto-generated type for paginating through a list of Strings.
+ * An auto-generated type for paginating through multiple Strings.
  *
  */
 export type StringConnection = {
   __typename?: 'StringConnection';
   /** A list of edges. */
   edges: Array<StringEdge>;
+  /** A list of the nodes contained in StringEdge. */
+  nodes: Array<Scalars['String']['output']>;
   /** Information to aid in pagination. */
   pageInfo: PageInfo;
 };
@@ -7844,6 +8729,8 @@ export type SubmitSuccess = {
   __typename?: 'SubmitSuccess';
   /** The ID of the cart completion attempt that will be used for polling for the result. */
   attemptId: Scalars['String']['output'];
+  /** The url to which the buyer should be redirected after the cart is successfully submitted. */
+  redirectUrl: Scalars['URL']['output'];
 };
 
 /** Cart submit for checkout completion is throttled. */
@@ -7865,6 +8752,33 @@ export type Swatch = {
   color?: Maybe<Scalars['Color']['output']>;
   /** The swatch image. */
   image?: Maybe<MediaImage>;
+};
+
+/**
+ * The taxonomy category for the product.
+ *
+ */
+export type TaxonomyCategory = Node & {
+  __typename?: 'TaxonomyCategory';
+  /** All parent nodes of the current taxonomy category. */
+  ancestors: Array<TaxonomyCategory>;
+  /** A static identifier for the taxonomy category. */
+  id: Scalars['ID']['output'];
+  /** The localized name of the taxonomy category. */
+  name: Scalars['String']['output'];
+};
+
+/**
+ * A filter used to view a subset of products in a collection matching a specific taxonomy metafield value.
+ *
+ */
+export type TaxonomyMetafieldFilter = {
+  /** The key of the metafield to filter on. */
+  key: Scalars['String']['input'];
+  /** The namespace of the metafield to filter on. */
+  namespace: Scalars['String']['input'];
+  /** The value of the metafield. */
+  value: Scalars['String']['input'];
 };
 
 /** Represents a resource that you can track the origin of the search traffic. */
@@ -8101,6 +9015,7 @@ export type GetCollectionQueryVariables = Exact<{
   videoAmt?: InputMaybe<Scalars['Int']['input']>;
   reverse?: InputMaybe<Scalars['Boolean']['input']>;
   collectionSortKey?: InputMaybe<CollectionSortKeys>;
+  productReverse?: InputMaybe<Scalars['Boolean']['input']>;
   productSortKey?: InputMaybe<ProductCollectionSortKeys>;
 }>;
 

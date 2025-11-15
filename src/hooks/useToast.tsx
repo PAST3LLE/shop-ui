@@ -12,8 +12,8 @@ export function useToast() {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (pathname !== '/collection' || !process.env.NEXT_PUBLIC_SALE) return
-    toast(<PastelleToast header="END OF THE YEAR SALE" body={process.env.NEXT_PUBLIC_SALE} isMobile={isMobile} />)
+    if (pathname !== '/collection' || !process.env.NEXT_PUBLIC_TOAST_DESCRIPTION) return
+    toast(<PastelleToast header={process.env.NEXT_PUBLIC_TOAST_HEADER} body={process.env.NEXT_PUBLIC_TOAST_DESCRIPTION} isMobile={isMobile} />)
     return toast.dismiss
   }, [isMobile, pathname])
 }

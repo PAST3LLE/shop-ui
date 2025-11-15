@@ -23,6 +23,7 @@ export function Layout({ children }: Props) {
       {children}
       <Cookies />
       <ToastContainer
+        theme="dark"
         toastClassName="pastelle-toast"
         position={isMobile ? 'bottom-center' : 'bottom-right'}
         pauseOnHover={false}

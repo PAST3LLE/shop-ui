@@ -18,6 +18,7 @@ import {
 import { queryProductPaths } from '@/shopify/graphql/api/products'
 import { BaseProductPageProps } from '@/components/PagesComponents/types'
 import { BLACK } from '@past3lle/theme'
+import { SkillLockStatus } from '@past3lle/forge-web3'
 import { ProductSchema } from '@/components/SEO/types'
 import { getProductSeoSchema } from '@/components/SEO/utils'
 import { DEFAULT_PRODUCT_DESCRIPTION } from '@/components/SEO/constants'
@@ -31,7 +32,7 @@ import { collectionProductFromParamsSelector } from '@/api/collection/utils'
 
 const SinglePageSmartWrapper = dynamic(
   () => import(/* webpackPrefetch: true,  webpackChunkName: "HOMESMARTWRAPPER" */ '@/components/PagesComponents'),
-  { ssr: false },
+  { ssr: false }
 )
 
 export async function getStaticPaths() {
@@ -59,8 +60,7 @@ export const getStaticProps = wrapper.getStaticProps((store) => async ({ params 
 
   if (!product)
     throw new Error(
-      'Missing product information with handle/id ' +
-        JSON.stringify(params?.handle || params?.id || 'UNKNOWN PRODUCT!'),
+      'Missing product information with handle/id ' + JSON.stringify(params?.handle || params?.id || 'UNKNOWN PRODUCT!')
     )
 
   // Pass post data to the page via props

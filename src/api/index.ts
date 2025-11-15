@@ -17,6 +17,7 @@ export async function fetchLatestCollectionAndUpdateStore(store: AppStore) {
     videoAmt: PRODUCT_VIDEOS_AMOUNT,
     // reverse array to get first as latest
     reverse: true,
+    productReverse: true,
     productSortKey: ProductCollectionSortKeys.BestSelling,
   })
 

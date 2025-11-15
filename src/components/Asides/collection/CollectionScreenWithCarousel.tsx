@@ -19,7 +19,7 @@ const AsideCarousel = dynamic(
     import(
       /* webpackPrefetch: true,  webpackChunkName: "ASIDECAROUSEL" */ '@/components/PagesComponents/screens/AsideCarousel'
     ),
-  { ssr: false },
+  { ssr: false }
 )
 
 export default function CollectionScreenWithCarousel(props: CollectionPageProps) {
@@ -47,16 +47,24 @@ export default function CollectionScreenWithCarousel(props: CollectionPageProps)
 
   // Src-set of all images
   const imageSrcSet = useMemo(
-    () => getImageSizeMap(lockStatus === SkillLockStatus.LOCKED ? lockedImages : images),
-    [lockedImages, lockStatus, images],
+    () =>
+      getImageSizeMap(
+        lockStatus === SkillLockStatus.LOCKED
+          ? lockedImages
+          : !isMobile && images.length === 1
+          ? [images[0], images[0]]
+          : images
+      ),
+    [lockStatus, lockedImages, isMobile, images]
   )
+
   return (
     <CollectionScreensContainer ref={setRef}>
       <AsideCarousel
         {...commonProps}
         carousel={{
           ...carousel,
-          data: isMobile ? [...imageSrcSet, selectedVideo] : imageSrcSet,
+          data: isMobile ? [...imageSrcSet, ...('__typename' in selectedVideo ? [selectedVideo] : [])] : imageSrcSet,
           touchAction: 'none',
           startIndex: currentCarouselIndex,
           videoProps: {
