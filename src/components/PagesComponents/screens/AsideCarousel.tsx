@@ -19,7 +19,6 @@ import ProductRarityAndLabel from '../components/ProductRarityAndLabel'
 import { useProductWebCarouselActions } from '../hooks/useProductCarouselActions'
 import { ScrollingProductLabel } from '../styleds'
 import { BaseScreensProps, WithContainerNode } from './types'
-import { SaleBanner } from '../components/SaleBanner'
 
 export type CarouselScreenProps = Omit<ProductCarousel, 'axis' | 'children' | 'animationProps'> &
   WithTouchAction &
@@ -119,12 +118,12 @@ export default memo<AsideCarouselProps>(function AsideCarouselScreen({
         logoCss={
           logoCss ??
           `
-                    filter: ${
-                      mode === ThemeModes.DARK
-                        ? `invert(1) saturate(1.4) hue-rotate(180deg) drop-shadow(0px 3px 7px ${bgColor})`
-                        : `drop-shadow(0px 5px 5px ${bgColor})`
-                    };
-                  `
+            filter: ${
+              mode === ThemeModes.DARK
+                ? `invert(1) saturate(1.4) hue-rotate(180deg) drop-shadow(0px 3px 7px ${bgColor})`
+                : `drop-shadow(0px 5px 5px ${bgColor})`
+            };
+          `
         }
         parentNode={containerNode}
         isCollectionView={isCollectionView}

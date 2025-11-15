@@ -14,27 +14,27 @@ import { useHeaderMedia } from './hooks'
 
 const DynamicNavigation = dynamic(
   () => import(/* webpackPrefetch: true,  webpackChunkName: "NAVIGATION" */ '@/components/Navigation'),
-  { ssr: true },
+  { ssr: true }
 )
 
 const DynamicThemeToggler = dynamic(
   () =>
     import(/* webpackPrefetch: true,  webpackChunkName: "THEME_TOGGLE_BAR" */ './styleds').then(
-      (module) => module.StyledThemeToggleBar,
+      (module) => module.StyledThemeToggleBar
     ),
-  { ssr: false },
+  { ssr: false }
 )
 const DynamicHeaderRow = dynamic(
   () =>
     import(/* webpackPrefetch: true,  webpackChunkName: "HEADER_ROW" */ './styleds').then((module) => module.HeaderRow),
-  { ssr: false },
+  { ssr: false }
 )
 const DynamicFreeShippingBanner = dynamic(
   () =>
     import(
       /* webpackPrefetch: true,  webpackChunkName: "FREE_SHIPPING_BANNER" */ '@/components/PagesComponents/styleds'
     ).then((module) => module.FreeShippingBanner),
-  { ssr: false },
+  { ssr: false }
 )
 // Relies on client side tech - load async // SSR = false
 const DynamicShoppingCartHeader = dynamic(
@@ -42,7 +42,15 @@ const DynamicShoppingCartHeader = dynamic(
     import(
       /* webpackPrefetch: true,  webpackChunkName: "SHOPPING_CART_HEADER" */ '@/components/ShoppingCart/ShoppingCart'
     ).then((module) => module.ShoppingCartHeader),
-  { ssr: false },
+  { ssr: false }
+)
+
+const SaleBanner = dynamic(
+  () =>
+    import(
+      /* webpackPrefetch: true,  webpackChunkName: "SALES_BANNER" */ '@/components/PagesComponents/components/SaleBanner'
+    ).then((module) => module.SaleBanner),
+  { ssr: false }
 )
 
 export default function Header() {
@@ -54,7 +62,8 @@ export default function Header() {
   const [open, setOpen] = useState(false)
 
   return (
-    <HeaderFrame as="header" color={color} logoSet={headerLogo} open={false}>
+    <HeaderFrame as="header" color={color} logoSet={headerLogo} open={false} css={process.env.NEXT_PUBLIC_SALE && `margin-top: 40px;`}>
+      {process.env.NEXT_PUBLIC_SALE && <SaleBanner css={`position: fixed; top: 0; left: 0; right: 0;`} backgroundColor="#383d38ff" />}
       <HeaderDrawerButton onClick={() => setOpen((state) => !state)}>
         <ProductSubHeader padding="0" margin="0">
           TAP TO {open ? 'HIDE' : 'VIEW CART + MENU'}

@@ -13,6 +13,7 @@ export const QUERY_GET_COLLECTION = gql`
     $videoAmt: Int
     $reverse: Boolean
     $collectionSortKey: CollectionSortKeys
+    $productReverse: Boolean
     $productSortKey: ProductCollectionSortKeys
   ) {
     collections(first: $collectionAmount, reverse: $reverse, sortKey: $collectionSortKey) {
@@ -30,7 +31,7 @@ export const QUERY_GET_COLLECTION = gql`
           title
           description
         }
-        products(first: $productAmt, sortKey: $productSortKey) {
+        products(first: $productAmt, reverse: $productReverse, sortKey: $productSortKey) {
           nodes {
             ...FragmentProduct
 
